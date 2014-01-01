@@ -1,0 +1,44 @@
+* Description
+
+esh is a program for text templating using awk(1p) and sh(1p).  Templates
+are compiled into a shell script which outputs the original template and
+the result of evaluating shell commands embedded in the template.
+
+
+#+BEGIN_EXAMPLE:
+hello <% printf "%s" "$USER" %>
+#+END_EXAMPLE  
+
+Compiles into:
+
+#+BEGIN_EXAMPLE:
+printf "%s" 'hello '
+printf "%s" "$USER"
+echo
+#+END_EXAMPLE
+
+Anything embedded within "<% " and " %>" is inserted verbatim into the
+resulting shell script.  These delimiters can be escaped with "<%%" and
+"%%>" respectively.  Embedded code cannot span multiple lines.
+
+* Usage
+
+eshc(1) accepts template files as arguments or reads stdin and outputs a
+sh(1p) script on stdout.
+
+esh(1) is a thin wrapper that pipes the output of eshc(1) into sh(1p).
+
+#+BEGIN_EXAMPLE:
+esh my-template.html.esh > my-template.html
+#+END_EXAMPLE
+
+* Installation
+
+#+BEGIN_SRC: sh
+# installs into /usr/local
+sudo make install 
+# installs into /foo/bar
+PREFIX=/foo/bar make install 
+#+END_SRC
+
+The makefile also supports an =uninstall= target, which does the obvious.

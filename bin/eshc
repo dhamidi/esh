@@ -1,0 +1,82 @@
+#!/usr/bin/awk -f
+
+BEGIN {
+    TEMPLATE_BEGIN = "<% "
+    TEMPLATE_END   = " %>"
+    TEMPLATE_ESCAPE[TEMPLATE_BEGIN] = "<%%"
+    TEMPLATE_ESCAPE[TEMPLATE_END]   = "%%>"
+
+    TEMPLATE_SKIP   = length(TEMPLATE_BEGIN)
+    TEMPLATE_SKIP_END = length(TEMPLATE_END)
+}
+
+function quote(text) {
+    gsub("'", "'\\''", text)
+    return "'" text "'"
+}
+
+function emit_text(text) {
+    if (length(text))
+        print "printf \"%s\" " quote(text)
+}
+
+function emit_newline() {
+    print "echo"
+}
+
+function emit_code(code) {
+    print code
+}
+
+function match_directive(text) {
+    MATCH["start"]  = index(text, TEMPLATE_BEGIN)
+    MATCH["end"]    = index(text, TEMPLATE_END)
+    MATCH["length"] = MATCH["end"] - MATCH["start"] - TEMPLATE_SKIP
+
+    return MATCH["start"] && MATCH["end"]
+}
+
+function extract_prematch(text) {
+    return substr(text, 1, MATCH["start"] - 1)
+}
+
+function extract_match(text) {
+    return substr(text, MATCH["start"] + TEMPLATE_SKIP, MATCH["length"])
+}
+
+function extract_postmatch(text) {
+    return substr(text, MATCH["end"] + TEMPLATE_SKIP_END)
+}
+
+function unescape(text) {
+    for (replacement in TEMPLATE_ESCAPE) {
+        gsub(TEMPLATE_ESCAPE[replacement],
+             replacement,
+             text)
+    }
+
+    return text
+}
+
+{ match_directive($0) }
+
+MATCH["length"] <= 0 {
+    emit_text($0)
+    emit_newline()
+}
+
+MATCH["length"] > 0 {
+    text = $0
+    found = 1
+    while (found) {
+        emit_text(extract_prematch(text))
+        emit_code(unescape(extract_match(text)))
+        text = extract_postmatch(text)
+        found = match_directive(text)
+    }
+
+    if (length(text)) {
+        emit_text(text)
+        emit_newline()
+    }
+}
