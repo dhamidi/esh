@@ -1,13 +1,10 @@
 #!/usr/bin/awk -f
 
 BEGIN {
-    TEMPLATE_BEGIN = "<% "
-    TEMPLATE_END   = " %>"
+    TEMPLATE_BEGIN = "<%[- ]"
+    TEMPLATE_END   = "[ -]%>"
     TEMPLATE_ESCAPE[TEMPLATE_BEGIN] = "<%%"
     TEMPLATE_ESCAPE[TEMPLATE_END]   = "%%>"
-
-    TEMPLATE_SKIP   = length(TEMPLATE_BEGIN)
-    TEMPLATE_SKIP_END = length(TEMPLATE_END)
 }
 
 function quote(text) {
@@ -25,27 +22,42 @@ function emit_newline() {
 }
 
 function emit_code(code) {
+    if (MATCH["end-op"] == "-") {
+        code = "printf \"%s\" \"$(" code ")\""
+    }
     print code
 }
 
 function match_directive(text) {
-    MATCH["start"]  = index(text, TEMPLATE_BEGIN)
-    MATCH["end"]    = index(text, TEMPLATE_END)
-    MATCH["length"] = MATCH["end"] - MATCH["start"] - TEMPLATE_SKIP
+    MATCH["start"]      = match(text, TEMPLATE_BEGIN)
+    MATCH["start-skip"] = RLENGTH
+    MATCH["start-op"]   = substr(text, RSTART, RLENGTH)
+    MATCH["start-op"]   = substr(MATCH["start-op"], length(MATCH["start-op"]))
+    MATCH["end"]        = match(text, TEMPLATE_END)
+    MATCH["end-skip"]   = RLENGTH
+    MATCH["end-op"]     = substr(text, RSTART, 1)
+
+    MATCH["length"] = MATCH["end"] - MATCH["start"] - MATCH["start-skip"]
 
     return MATCH["start"] && MATCH["end"]
 }
 
 function extract_prematch(text) {
-    return substr(text, 1, MATCH["start"] - 1)
+    result = substr(text, 1, MATCH["start"] - 1)
+    if (MATCH["start-op"] == "-") {
+        # strip trailing whitespace on prematch
+        sub(/[[:blank:]]*$/, "", result)
+    }
+
+    return result
 }
 
 function extract_match(text) {
-    return substr(text, MATCH["start"] + TEMPLATE_SKIP, MATCH["length"])
+    return substr(text, MATCH["start"] + MATCH["start-skip"], MATCH["length"])
 }
 
 function extract_postmatch(text) {
-    return substr(text, MATCH["end"] + TEMPLATE_SKIP_END)
+    return substr(text, MATCH["end"] + MATCH["end-skip"])
 }
 
 function unescape(text) {
@@ -68,6 +80,7 @@ MATCH["length"] <= 0 {
 MATCH["length"] > 0 {
     text = $0
     found = 1
+    should_emit_newline = 1
     while (found) {
         emit_text(extract_prematch(text))
         emit_code(unescape(extract_match(text)))
@@ -77,6 +90,6 @@ MATCH["length"] > 0 {
 
     if (length(text)) {
         emit_text(text)
-        emit_newline()
+        emit_newline();
     }
 }
