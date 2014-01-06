@@ -30,14 +30,14 @@ function emit_code(code) {
 
 function match_directive(text) {
     MATCH["start"]      = match(text, TEMPLATE_BEGIN)
-    MATCH["start-skip"] = RLENGTH
+    MATCH["start-skip"] = RLENGTH > 0 ? RLENGTH : 0
     MATCH["start-op"]   = substr(text, RSTART, RLENGTH)
     MATCH["start-op"]   = substr(MATCH["start-op"], length(MATCH["start-op"]))
     MATCH["end"]        = match(text, TEMPLATE_END)
-    MATCH["end-skip"]   = RLENGTH
+    MATCH["end-skip"]   = RLENGTH > 0 ? RLENGTH : 0
     MATCH["end-op"]     = substr(text, RSTART, 1)
 
-    MATCH["length"] = MATCH["end"] - MATCH["start"] - MATCH["start-skip"]
+    MATCH["length"] = MATCH["end"] - (MATCH["start"] + MATCH["start-skip"])
 
     return MATCH["start"] && MATCH["end"]
 }
@@ -80,7 +80,7 @@ MATCH["length"] <= 0 {
 MATCH["length"] > 0 {
     text = $0
     found = 1
-    should_emit_newline = 1
+
     while (found) {
         emit_text(extract_prematch(text))
         emit_code(unescape(extract_match(text)))
