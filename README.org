@@ -7,7 +7,7 @@ the result of evaluating shell commands embedded in the template.
 
 #+BEGIN_EXAMPLE:
 hello <% printf "%s" "$USER" %>
-#+END_EXAMPLE  
+#+END_EXAMPLE
 
 Compiles into:
 
@@ -20,6 +20,9 @@ echo
 Anything embedded within "<% " and " %>" is inserted verbatim into the
 resulting shell script.  These delimiters can be escaped with "<%%" and
 "%%>" respectively.  Embedded code cannot span multiple lines.
+
+It is possible to strip preceding or following whitespace from the
+output by using "<%-" and "-%>" as delimiters for embedded code.
 
 * Usage
 
@@ -36,9 +39,9 @@ esh my-template.html.esh > my-template.html
 
 #+BEGIN_SRC: sh
 # installs into /usr/local
-sudo make install 
+sudo make install
 # installs into /foo/bar
-PREFIX=/foo/bar make install 
+PREFIX=/foo/bar make install
 #+END_SRC
 
 The makefile also supports an =uninstall= target, which does the obvious.
